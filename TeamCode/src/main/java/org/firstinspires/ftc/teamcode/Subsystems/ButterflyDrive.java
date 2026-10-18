@@ -18,6 +18,7 @@ public class ButterflyDrive {
 
     public static long TRANSITION_TIME_MS = 300;
 
+    // Modes
     public enum Mode {
         MECANUM,
         TRACTION
