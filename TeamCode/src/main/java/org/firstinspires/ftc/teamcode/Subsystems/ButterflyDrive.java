@@ -55,11 +55,9 @@ public class ButterflyDrive {
     public Command deployCommand() {
         return instant(() -> setMode(Mode.TRACTION));
     }
-
     public Command retractCommand() {
         return instant(() -> setMode(Mode.MECANUM));
     }
-
     public Command toggleCommand() {
         return instant(() -> setMode(mode == Mode.MECANUM ? Mode.TRACTION:Mode.MECANUM));
     }
@@ -80,7 +78,7 @@ public class ButterflyDrive {
     public void addTelemetry(Telemetry telemetry) {
         telemetry.addData("Butterfly Mode", mode);
         telemetry.addData("Butterfly Settled", isSettled());
-        telemetry.addData("Butterfly Servos (L/R)", "%.2f / %.2f",
+        telemetry.addData("Butterfly Servos", "%.2f / %.2f",
                 leftServo.getPosition(), rightServo.getPosition());
     }
 }
