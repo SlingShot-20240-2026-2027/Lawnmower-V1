@@ -26,4 +26,6 @@ android {
 
 dependencies {
     implementation project(':FtcRobotController')
+    implementation 'androidx.xr.runtime:runtime:1.1.0-alpha01'
+    implementation 'com.acmerobotics.dashboard:dashboard:0.4.16'
 }
