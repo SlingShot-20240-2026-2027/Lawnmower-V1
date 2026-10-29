@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.controlSystems;
+package org.firstinspires.ftc.teamcode.Subsystems.Turret;
 import com.arcrobotics.ftclib.util.InterpLUT;
 
 public class LookUpTable {
