@@ -15,12 +15,11 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 public class Intake {
-    // Got the below tips from CLAUDE CODE for this. Ik I am such a goated coder, I always cite...
+    // Got the below tips from GEMININI for this. Ik I am such a goated coder, I always cite...
     /**
      * Pollen is "present" when the sensor reads closer than this.
      * Tune with telemetry: note the reading with no pollen and with pollen
      * in front of the sensor, then pick a value between the two.
-     * The V3 is accurate to about 10 cm, so mount it close to the path.
      * The sensor has to read "clear" for this long before the next pollen can
      * count. This stops one pollen that wobbles in front of the sensor from
      * counting twice. Keep it shorter than the gap between pollen.
