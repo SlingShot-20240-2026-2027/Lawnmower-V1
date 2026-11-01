@@ -62,6 +62,8 @@ public class RobotConstants {
     public static double OFFSET_HOOD = 0.14; //-0.4;
     public static double MANUAL_HOOD_POSITION = 0.5;
     public static double SPEED_SCALE = 1;
+    public static String SHOOTER_ENCODER_MOTOR = "shooterleft";
+    public static double SHOOTER_ENCODER_SIGN = 1;
 
     // Testing Constants for Interp
     public static double TEST_SHOOTER_RPM = 0;

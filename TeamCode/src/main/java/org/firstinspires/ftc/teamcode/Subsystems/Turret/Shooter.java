@@ -42,7 +42,7 @@ public class Shooter {
         shooterMotor2.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
         shooterMotor2.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
 
-        encoderMotor = hardwareMap.get(DcMotorEx.class, "frontLeft");
+        encoderMotor = hardwareMap.get(DcMotorEx.class, RobotConstants.SHOOTER_ENCODER_MOTOR);
 
         pid = new PIDController(
                 RobotConstants.SHOOTER_P,
@@ -125,7 +125,7 @@ public class Shooter {
             setRPM(storage.getRPM(distance));
             setHood(storage.getHood(distance));
         }
-        cachedRPM = -encoderMotor.getVelocity() * 60.0 / TICKS_PER_REV;
+        cachedRPM = RobotConstants.SHOOTER_ENCODER_SIGN * encoderMotor.getVelocity() * 60.0 / TICKS_PER_REV;
         double currentRPM = cachedRPM;
 
 
