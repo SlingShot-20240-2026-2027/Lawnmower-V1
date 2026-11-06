@@ -19,6 +19,8 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import org.firstinspires.ftc.teamcode.Subsystems.Intake;
 import org.firstinspires.ftc.teamcode.Subsystems.Shooternf;
 import org.firstinspires.ftc.teamcode.Subsystems.Transfer;
+import org.firstinspires.ftc.teamcode.Subsystems.Gate;
+
 
 @Autonomous(name = "SoloAuto1Tip", group = "Autonomous")
 public class SoloAuto1Tip extends LinearOpMode {
@@ -27,6 +29,7 @@ public class SoloAuto1Tip extends LinearOpMode {
     private Shooternf shooter;
     private Transfer transfer;
     private Intake intake;
+    private Gate gate;
 
     private final PoseFactory poseFactory = PoseFactory.degrees();
 
@@ -42,12 +45,14 @@ public class SoloAuto1Tip extends LinearOpMode {
         return sequential(
                 parallel(
                         shooter.on(),
-                        intake.in()
+                        intake.in(),
+                        transfer.transfer(),
+                        gate.cl()
                 ),
-                waitMs(1500),
-                transfer.transfer(),
+                waitMs(2000),
+                gate.op(),
                 waitMs(1000),
-                transfer.idle(),
+                gate.cl(),
                 follow(follower, move1()),
                 follow(follower, intake1()),
                 follow(follower, park()),
