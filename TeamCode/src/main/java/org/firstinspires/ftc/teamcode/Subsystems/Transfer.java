@@ -7,6 +7,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 public class Transfer {
 
@@ -48,5 +49,17 @@ public class Transfer {
 
     public Command idle() {
         return instant(() -> setState(State.IDLE)).requiring(this);
+    }
+
+    public Command transfer(long timeMs) {
+        ElapsedTime timer = new ElapsedTime();
+        return Command.build()
+                .setStart(() -> {
+                    timer.reset();
+                    setState(State.TRANSFER);
+                })
+                .setDone(() -> timer.milliseconds() >= timeMs)
+                .setEnd(endCondition -> setState(State.IDLE))
+                .requiring(this);
     }
 }

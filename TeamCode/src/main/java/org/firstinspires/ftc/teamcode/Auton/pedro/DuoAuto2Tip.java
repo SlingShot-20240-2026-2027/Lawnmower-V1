@@ -60,17 +60,15 @@ public class DuoAuto2Tip extends LinearOpMode {
                         shooter.on(),
                         intake.in()
                 ),
-                waitMs(1000),
-                transfer.transfer(),
-                waitMs(1000),
+                waitMs(2000),
+                transfer.transfer(1000),
                 transfer.idle(),
                 follow(follower, move1()),
                 waitMs(1000),
                 follow(follower, path2()),
                 follow(follower, path3()),
                 follow(follower, path4()),
-                transfer.transfer(),
-                waitMs(1000),
+                transfer.transfer(1000),
                 transfer.idle(),
                 follow(follower, path5()),
                 ramp.deploy(),
@@ -79,8 +77,7 @@ public class DuoAuto2Tip extends LinearOpMode {
                 waitMs(1000),
                 follow(follower, path7()),
                 follow(follower, path8()),
-                transfer.transfer(),
-                waitMs(1000),
+                transfer.transfer(1000),
                 transfer.idle(),
                 follow(follower, path9()),
                 follow(follower, path10()),
@@ -100,14 +97,20 @@ public class DuoAuto2Tip extends LinearOpMode {
     public void runOpMode() {
         Scheduler.reset();
         follower = Constants.create(hardwareMap);
+        shooter = new Shooternf(hardwareMap);
+        transfer = new Transfer(hardwareMap);
+        intake = new Intake(hardwareMap);
+        ramp = new DeployRamp(hardwareMap);
         follower.setPose(start);
         follower.update();
 
         waitForStart();
+        schedule(shooter.periodic());
         schedule(autoRoutine());
 
         while (opModeIsActive()) {
             follower.update();
+            intake.update();
             Scheduler.execute();
 
             telemetry.addData("x", follower.pose().x());
