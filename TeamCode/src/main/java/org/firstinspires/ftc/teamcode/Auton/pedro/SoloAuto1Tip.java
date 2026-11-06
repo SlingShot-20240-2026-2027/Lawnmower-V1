@@ -39,7 +39,7 @@ public class SoloAuto1Tip extends LinearOpMode {
     private final Pose intake1 = poseFactory.of(8.75, 8.7776, 270);
     private final Pose park = poseFactory.of(13.6905, 95.7133, 270);
     private final Pose parkControl1 = poseFactory.of(40.64, 71.0928, 0);
-
+//Eshaann
     // Autonomous routine
     public Command autoRoutine() {
         return sequential(
