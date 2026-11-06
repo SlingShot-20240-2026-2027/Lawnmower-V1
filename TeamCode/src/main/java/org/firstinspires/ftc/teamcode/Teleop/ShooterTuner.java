@@ -164,8 +164,10 @@ public class ShooterTuner extends LinearOpMode {
 
         dash.addData("targetRpm", shooter.getTargetRpm());
         dash.addData("rpm", shooter.getRpm());
+        dash.addData("leftRpm", shooter.getLeftRpm());
+        dash.addData("rightRpm", shooter.getRightRpm());
         dash.addData("error", shooter.getError());
-        dash.addData("power", shooter.getPower());
+        dash.addData("currentAmps", shooter.getCurrentAmps());
         dash.addData("ready", shooter.isReady() ? 1 : 0);
         dash.addData("voltage", shooter.getVoltage());
 
@@ -174,8 +176,8 @@ public class ShooterTuner extends LinearOpMode {
         dash.addData("Dashboard TARGET_RPM", "%.0f", Shooternf.TARGET_RPM);
         dash.addData("Dashboard HOOD_POSITION", "%.3f", Shooternf.HOOD_POSITION);
         dash.addData("Hood (actual)", "%.3f", shooter.getHood());
-        dash.addData("Gains", "kV %.6f  kS %.3f  kP %.6f  kI %.6f  kD %.6f",
-                Shooternf.kV, Shooternf.kS, Shooternf.kP, Shooternf.kI, Shooternf.kD);
+        dash.addData("Gains", "kP %.3f  kI %.3f  kD %.3f  kF %.3f  (kF sent %.3f)",
+                Shooternf.kP, Shooternf.kI, Shooternf.kD, Shooternf.kF, shooter.getAppliedF());
         dash.addData("Transfer", feeding ? "RUNNING" : "IDLE");
         dash.addData("Intake", "RUNNING (always on)");
         dash.addData("Shots", shots);

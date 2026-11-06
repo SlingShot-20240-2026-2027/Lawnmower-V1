@@ -30,10 +30,10 @@ public class SoloAuto1Tip extends LinearOpMode {
 
     private final PoseFactory poseFactory = PoseFactory.degrees();
 
-    private final Pose start = poseFactory.of(54.7018, 8.4678, 90);
-    private final Pose move1 = poseFactory.of(8.0215, 29.3925, 270);
+    private final Pose start = poseFactory.of(55.91998822932052, 9.218138386262925, 90);
+    private final Pose move1 = poseFactory.of(8.75, 29.3925, 270);
     private final Pose move1Control1 = poseFactory.of(49.2774, 16.9788, 0);
-    private final Pose intake1 = poseFactory.of(8.02, 8.7776, 270);
+    private final Pose intake1 = poseFactory.of(8.75, 8.7776, 270);
     private final Pose park = poseFactory.of(13.6905, 95.7133, 270);
     private final Pose parkControl1 = poseFactory.of(40.64, 71.0928, 0);
 

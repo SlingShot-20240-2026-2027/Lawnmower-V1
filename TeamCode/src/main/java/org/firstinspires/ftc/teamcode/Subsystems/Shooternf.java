@@ -14,38 +14,33 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 
 @Config
 public class Shooternf {
 
     public static String LEFT_MOTOR_NAME = "shooterleft";
     public static String RIGHT_MOTOR_NAME = "shooterright";
-    public static String ENCODER_MOTOR_NAME = "shooterleft";
     public static String HOOD_SERVO_NAME = "hood1";
     public static boolean LEFT_REVERSED = true;
     public static boolean RIGHT_REVERSED = false;
-    public static double ENCODER_SIGN = 1;
     public static double TICKS_PER_REV = 28;
+    public static double MAX_RPM = 6000;
 
-    public static double TARGET_RPM = 3000;
+    public static double TARGET_RPM = 1620;
     public static double HOOD_POSITION = 0.5;
     public static double HOOD_MIN = 0.0;
     public static double HOOD_MAX = 1.0;
 
-    public static double kP = 0.0005;
-    public static double kI = 0.0;
+    public static double kP = 1.2;
+    public static double kI = 0.12;
     public static double kD = 0.0;
-    public static double kV = 0.00017;
-    public static double kS = 0.0;
+    public static double kF = 11.7;
 
-    public static double I_ZONE_RPM = 300;
-    public static double INTEGRAL_MAX_POWER = 0.25;
-    public static double VELOCITY_FILTER = 1.0;
     public static boolean VOLTAGE_COMPENSATION = true;
     public static double NOMINAL_VOLTAGE = 12.0;
     public static long VOLTAGE_PERIOD_MS = 200;
-    public static double MIN_POWER = 0.0;
-    public static double MAX_POWER = 1.0;
+    public static double VELOCITY_FILTER = 1.0;
 
     public static double READY_TOLERANCE_RPM = 50;
     public static long READY_HOLD_MS = 80;
@@ -54,11 +49,10 @@ public class Shooternf {
 
     private final DcMotorEx left;
     private final DcMotorEx right;
-    private final DcMotorEx encoder;
+    private final DcMotorEx[] motors;
     private final Servo hood;
     private final VoltageSensor voltageSensor;
 
-    private final ElapsedTime loopTimer = new ElapsedTime();
     private final ElapsedTime voltageTimer = new ElapsedTime();
     private final ElapsedTime readyTimer = new ElapsedTime();
 
@@ -66,31 +60,33 @@ public class Shooternf {
     private Double rpmOverride = null;
     private Double hoodOverride = null;
 
+    private boolean velocityModeActive = false;
+    private double commandedTicksPerSec = Double.NaN;
+    private double appliedP = Double.NaN, appliedI = Double.NaN, appliedD = Double.NaN, appliedF = Double.NaN;
+
     private double rpm = 0;
-    private double lastRpm = 0;
+    private double leftRpm = 0;
+    private double rightRpm = 0;
     private double targetRpm = 0;
     private double error = 0;
-    private double integral = 0;
-    private double power = 0;
-    private double lastPower = Double.NaN;
     private double lastHood = Double.NaN;
     private double voltage = 12.0;
-    private double pTerm, iTerm, dTerm, ffTerm;
     private boolean ready = false;
     private boolean firstUpdate = true;
 
     public Shooternf(HardwareMap hardwareMap) {
         left = hardwareMap.get(DcMotorEx.class, LEFT_MOTOR_NAME);
         right = hardwareMap.get(DcMotorEx.class, RIGHT_MOTOR_NAME);
-        encoder = hardwareMap.get(DcMotorEx.class, ENCODER_MOTOR_NAME);
+        motors = new DcMotorEx[]{left, right};
         hood = hardwareMap.get(Servo.class, HOOD_SERVO_NAME);
         voltageSensor = hardwareMap.voltageSensor.iterator().next();
 
         left.setDirection(LEFT_REVERSED ? DcMotorSimple.Direction.REVERSE : DcMotorSimple.Direction.FORWARD);
         right.setDirection(RIGHT_REVERSED ? DcMotorSimple.Direction.REVERSE : DcMotorSimple.Direction.FORWARD);
-        for (DcMotorEx m : new DcMotorEx[]{left, right}) {
-            m.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        for (DcMotorEx m : motors) {
             m.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+            m.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            m.setPower(0);
         }
 
         voltage = voltageSensor.getVoltage();
@@ -130,7 +126,7 @@ public class Shooternf {
 
     public Command periodic() {
         return Command.build()
-                .setStart(this::resetController)
+                .setStart(this::resetReady)
                 .setExecute(this::update)
                 .setEnd(endCondition -> stop());
     }
@@ -138,7 +134,7 @@ public class Shooternf {
     public void setMode(Mode newMode) {
         if (newMode != mode) {
             mode = newMode;
-            resetController();
+            resetReady();
         }
     }
 
@@ -151,54 +147,28 @@ public class Shooternf {
     }
 
     public void update() {
-        double dt = loopTimer.seconds();
-        loopTimer.reset();
-
         if (voltageTimer.milliseconds() >= VOLTAGE_PERIOD_MS) {
             voltage = voltageSensor.getVoltage();
             voltageTimer.reset();
         }
 
-        double measured = ENCODER_SIGN * encoder.getVelocity() * 60.0 / TICKS_PER_REV;
+        leftRpm = toRpm(left.getVelocity());
+        rightRpm = toRpm(right.getVelocity());
+        double measured = (leftRpm + rightRpm) / 2.0;
         double alpha = Range.clip(VELOCITY_FILTER, 0.0, 1.0);
         rpm = firstUpdate ? measured : alpha * measured + (1.0 - alpha) * rpm;
+        firstUpdate = false;
 
-        double newTarget = mode == Mode.ON ? (rpmOverride != null ? rpmOverride : TARGET_RPM) : 0.0;
-        if (newTarget != targetRpm) {
-            integral = 0;
-        }
-        targetRpm = Math.max(0.0, newTarget);
+        double wanted = mode == Mode.ON ? (rpmOverride != null ? rpmOverride : TARGET_RPM) : 0.0;
+        targetRpm = Range.clip(wanted, 0.0, MAX_RPM);
         error = targetRpm - rpm;
 
-        if (targetRpm <= 0) {
-            pTerm = iTerm = dTerm = ffTerm = 0;
-            integral = 0;
-            power = 0;
+        if (targetRpm > 0) {
+            runVelocity(toTicksPerSec(targetRpm));
         } else {
-            ffTerm = kV * targetRpm + kS;
-            pTerm = kP * error;
-
-            if (kI != 0 && Math.abs(error) <= I_ZONE_RPM && dt > 0 && dt < 0.5) {
-                integral += error * dt;
-                double integralLimit = INTEGRAL_MAX_POWER / Math.abs(kI);
-                integral = Range.clip(integral, -integralLimit, integralLimit);
-            } else if (kI == 0 || Math.abs(error) > I_ZONE_RPM) {
-                integral = 0;
-            }
-            iTerm = kI * integral;
-
-            dTerm = (!firstUpdate && dt > 0 && dt < 0.5) ? -kD * (rpm - lastRpm) / dt : 0;
-
-            double raw = ffTerm + pTerm + iTerm + dTerm;
-            if (VOLTAGE_COMPENSATION) {
-                raw *= NOMINAL_VOLTAGE / Math.max(voltage, 6.0);
-            }
-            power = Range.clip(raw, MIN_POWER, MAX_POWER);
+            coast();
         }
 
-        lastRpm = rpm;
-        firstUpdate = false;
-        writePower(power);
         writeHood(hoodOverride != null ? hoodOverride : HOOD_POSITION);
         updateReady();
     }
@@ -206,15 +176,49 @@ public class Shooternf {
     public void stop() {
         mode = Mode.IDLE;
         targetRpm = 0;
-        power = 0;
-        integral = 0;
         ready = false;
-        writePower(0);
+        coast();
     }
 
-    private void resetController() {
-        integral = 0;
-        loopTimer.reset();
+    private void runVelocity(double ticksPerSec) {
+        if (!velocityModeActive) {
+            for (DcMotorEx m : motors) m.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            velocityModeActive = true;
+            appliedP = appliedI = appliedD = appliedF = Double.NaN;
+            commandedTicksPerSec = Double.NaN;
+        }
+        applyCoefficientsIfChanged();
+        if (Double.isNaN(commandedTicksPerSec) || Math.abs(ticksPerSec - commandedTicksPerSec) > 0.5) {
+            for (DcMotorEx m : motors) m.setVelocity(ticksPerSec);
+            commandedTicksPerSec = ticksPerSec;
+        }
+    }
+
+    private void coast() {
+        if (velocityModeActive || Double.isNaN(commandedTicksPerSec)) {
+            for (DcMotorEx m : motors) {
+                m.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                m.setPower(0);
+            }
+            velocityModeActive = false;
+            commandedTicksPerSec = 0;
+        }
+    }
+
+    private void applyCoefficientsIfChanged() {
+        double scale = VOLTAGE_COMPENSATION ? NOMINAL_VOLTAGE / Math.max(voltage, 6.0) : 1.0;
+        double f = kF * scale;
+        boolean changed = kP != appliedP || kI != appliedI || kD != appliedD
+                || Double.isNaN(appliedF) || Math.abs(f - appliedF) > Math.abs(appliedF) * 0.01;
+        if (!changed) return;
+        for (DcMotorEx m : motors) m.setVelocityPIDFCoefficients(kP, kI, kD, f);
+        appliedP = kP;
+        appliedI = kI;
+        appliedD = kD;
+        appliedF = f;
+    }
+
+    private void resetReady() {
         readyTimer.reset();
         ready = false;
     }
@@ -229,20 +233,20 @@ public class Shooternf {
         }
     }
 
-    private void writePower(double p) {
-        if (Double.isNaN(lastPower) || Math.abs(p - lastPower) > 0.001 || (p == 0 && lastPower != 0)) {
-            left.setPower(p);
-            right.setPower(p);
-            lastPower = p;
-        }
-    }
-
     private void writeHood(double position) {
         double clipped = Range.clip(position, HOOD_MIN, HOOD_MAX);
         if (Double.isNaN(lastHood) || Math.abs(clipped - lastHood) > 0.0005) {
             hood.setPosition(clipped);
             lastHood = clipped;
         }
+    }
+
+    private static double toRpm(double ticksPerSec) {
+        return ticksPerSec * 60.0 / TICKS_PER_REV;
+    }
+
+    private static double toTicksPerSec(double rpm) {
+        return rpm * TICKS_PER_REV / 60.0;
     }
 
     public boolean isReady() {
@@ -257,16 +261,20 @@ public class Shooternf {
         return rpm;
     }
 
+    public double getLeftRpm() {
+        return leftRpm;
+    }
+
+    public double getRightRpm() {
+        return rightRpm;
+    }
+
     public double getTargetRpm() {
         return targetRpm;
     }
 
     public double getError() {
         return error;
-    }
-
-    public double getPower() {
-        return power;
     }
 
     public double getVoltage() {
@@ -277,14 +285,21 @@ public class Shooternf {
         return lastHood;
     }
 
+    public double getAppliedF() {
+        return Double.isNaN(appliedF) ? 0 : appliedF;
+    }
+
+    public double getCurrentAmps() {
+        return left.getCurrent(CurrentUnit.AMPS) + right.getCurrent(CurrentUnit.AMPS);
+    }
+
     public void addTelemetry(Telemetry telemetry) {
         telemetry.addData("Shooter mode", mode);
         telemetry.addData("Shooter ready", ready);
         telemetry.addData("Shooter target rpm", targetRpm);
-        telemetry.addData("Shooter rpm", rpm);
+        telemetry.addData("Shooter rpm (avg / L / R)", "%.0f / %.0f / %.0f", rpm, leftRpm, rightRpm);
         telemetry.addData("Shooter error", error);
-        telemetry.addData("Shooter power", power);
-        telemetry.addData("Shooter ff / p / i / d", "%.3f / %.3f / %.3f / %.3f", ffTerm, pTerm, iTerm, dTerm);
+        telemetry.addData("Shooter PIDF", "%.3f / %.3f / %.3f / %.3f", kP, kI, kD, getAppliedF());
         telemetry.addData("Shooter hood", lastHood);
         telemetry.addData("Battery voltage", voltage);
     }
