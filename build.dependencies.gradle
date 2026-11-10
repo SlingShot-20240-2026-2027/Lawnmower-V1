@@ -4,6 +4,9 @@ repositories {
 
     maven { url 'https://repo.dairy.foundation/releases/'}
 
+    maven { url 'https://repo.dairy.foundation/releases/'}
+
+
 }
 
 dependencies {
@@ -23,6 +26,9 @@ dependencies {
     implementation 'com.pedropathing:revhub:3.0.2'
     implementation 'com.pedropathing:tuning:1.0.3'
     implementation("dev.frozenmilk.sinister:Sloth:0.3.2")
+
+    implementation 'com.pedropathing:revhub:3.0.2'
+    implementation 'com.pedropathing:tuning:1.0.3'
 
 }
 
