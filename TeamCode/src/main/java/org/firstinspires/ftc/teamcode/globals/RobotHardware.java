@@ -19,6 +19,10 @@ public class RobotHardware {
 
     public Servo gate;
 
+    public Servo b1, b2;
+    public DcMotorEx f1, f2;
+    public DcMotorEx fl, fr, bl, br;
+
 
     private RobotHardware(OpMode opMode) {
         this.opMode = opMode;
@@ -26,8 +30,28 @@ public class RobotHardware {
 
         intake = hardwareMap.get(DcMotor.class,"intake");
         transfer = hardwareMap.get(DcMotor.class,"transfer");
+        intake.setDirection(DcMotor.Direction.REVERSE);
+        transfer.setDirection(DcMotor.Direction.REVERSE);
 
         gate = hardwareMap.get(Servo.class,"gate");
+
+        b1 = hardwareMap.get(Servo.class,"butterfly1");
+        b2 = hardwareMap.get(Servo.class,"butterfly2");
+
+        f1 = hardwareMap.get(DcMotorEx.class,"flywheel1");
+        f2 = hardwareMap.get(DcMotorEx.class,"flywheel2");
+        f1.setDirection(DcMotorEx.Direction.REVERSE);
+        f2.setDirection(DcMotorEx.Direction.REVERSE);
+
+        fl = hardwareMap.get(DcMotorEx.class, "fl");
+        fr = hardwareMap.get(DcMotorEx.class, "fr");
+        bl = hardwareMap.get(DcMotorEx.class, "bl");
+        br = hardwareMap.get(DcMotorEx.class, "br");
+
+        fr.setDirection(DcMotorSimple.Direction.REVERSE);
+        br.setDirection(DcMotorSimple.Direction.REVERSE);
+
+
 
     }
 
